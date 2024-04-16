@@ -17,6 +17,7 @@ jobs:
         uses: TinyTapeout/tt-gds-action@tt06-openlane2
         with:
           skip-reports: true
+          openlane-tag: 2.0.0rc2
 
   precheck:
     needs: gds
