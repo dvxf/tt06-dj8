@@ -79,7 +79,7 @@ architecture behavioral of tt_um_dvxf_dj8 is
         x"99", x"12",  -- 0004: movr B,(EF)
         x"10", x"02",  -- 0006: jz 0004
         x"80", x"00",  -- 0008: add A,A,A
-        x"D4", x"40",  -- 000A: subc E, 0x40
+        x"D4", x"20",  -- 000A: subc E, 0x20
         x"10", x"00",  -- 000C: jz 0000
         x"30", x"01"  -- 000E: jmp 0002
     );
