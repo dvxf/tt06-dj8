@@ -71,17 +71,26 @@ architecture behavioral of tt_um_dvxf_dj8 is
     signal mem_bus_we, next_mem_bus_we: std_logic;
 
     -- test ROM
-    type romType is array (0 to 15) of std_logic_vector(7 downto 0);
+    type romType is array (0 to 31) of std_logic_vector(7 downto 0);
     signal tt06rom: romType := (
-        -- Test ROM: rotating indicator on 7-segment display, paused when all DIP switches are reset
+        -- Test ROM: rotating indicator on 7-segment display
+        -- Use DIP switches to change delay loop length, all 0 to skip delay loop
         x"F8", x"01",  -- 0000: movi A, 0x01
         x"9C", x"00",  -- 0002: movr E,A
         x"99", x"12",  -- 0004: movr B,(EF)
-        x"10", x"02",  -- 0006: jz 0004
-        x"80", x"00",  -- 0008: add A,A,A
-        x"D4", x"20",  -- 000A: subc E, 0x20
-        x"10", x"00",  -- 000C: jz 0000
-        x"30", x"01"  -- 000E: jmp 0002
+        x"10", x"08",  -- 0006: jz 0010
+        x"C3", x"01",  -- 0008: add D, 0x01
+        x"CA", x"00",  -- 000A: addc C, 0x00
+        x"C9", x"00",  -- 000C: addc B, 0x00
+        x"20", x"02",  -- 000E: jnz 0004
+        x"80", x"00",  -- 0010: add A,A,A
+        x"D4", x"20",  -- 0012: subc E, 0x20
+        x"10", x"00",  -- 0014: jz 0000
+        x"30", x"01",  -- 0016: jmp 0002
+        x"28", x"63",
+        x"29", x"44",
+        x"61", x"76",
+        x"65", x"58" 
     );
 
     component alu is port
@@ -144,7 +153,7 @@ begin
     process (address_bus_out)
     begin
         if (address_bus_out(15)='1') then
-            mem_data_in <= tt06rom(to_integer(unsigned(address_bus_out(3 downto 0))));
+            mem_data_in <= tt06rom(to_integer(unsigned(address_bus_out(4 downto 0))));
         else
             mem_data_in <= ui_in;
         end if;
@@ -283,7 +292,7 @@ begin
     begin
     if(reset = '1') then    
         state <= fetch1;
-        pc <= (others=>'0');
+        pc <= "010000000000000"; -- tt06: reset PC to 0x4000
         ir <= (others=>'0');
     elsif(falling_edge(clk)) then 
         state <= nextState;
