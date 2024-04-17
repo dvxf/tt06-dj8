@@ -10,35 +10,38 @@ ROM = [
         0x8D, 0x40,  # 0006: addc F,C,A
         0x9D, 0xA4,  # 0008: movr F,F,shr
         0xC5, 0x42,  # 000A: add F, 0x42
-        0xFC, 0x41,  # 000C: movi E, 0x41
-        0x98, 0xB1,  # 000E: movr (EF),F    mov (e),f for tt06
+        0xFC, 0x01,  # 000C: movi E, 0x01
+        0x98, 0xB1,  # 000E: movr (EF),F
         0xC4, 0xFF,  # 0010: add E, 0xFF
         0xFA, 0x06,  # 0012: movi C, 0x06
         0xC5, 0xFF,  # 0014: add F, 0xFF
         0xC2, 0xFF,  # 0016: add C, 0xFF
         0x20, 0x0A,  # 0018: jnz 0014
-        0x98, 0xB1,  # 001A: movr (EF),F    mov (e),f for tt06
-        0xFE, 0x00,  # 001C: movi G, 0x00
+        0x98, 0xB1,  # 001A: movr (EF),F
+        0xFE, 0x40,  # 001C: movi G, 0x40
         0xFF, 0x1C,  # 001E: movi H, 0x1C
         0xC7, 0x0C,  # 0020: add H, 0x0C
         0xCE, 0x00,  # 0022: addc G, 0x00
         0x40, 0x00,  # 0024: jmp gh
         0x30, 0x13,  # 0026: jmp 0026
-        0xFE, 0x40,  # 0028: movi G, 0x40
+        0xFE, 0x00,  # 0028: movi G, 0x00
         0xFF, 0x00,  # 002A: movi H, 0x00
         0x98, 0x02,  # 002C: movr A,(GH)
-        0xFC, 0x41,  # 002E: movi E, 0x41
+        0xFC, 0x01,  # 002E: movi E, 0x01
         0xFD, 0x00,  # 0030: movi F, 0x00
         0x99, 0x12,  # 0032: movr B,(EF)
         0x80, 0x20,  # 0034: add A,B,A
         0xC0, 0xAA,  # 0036: add A, 0xAA
         0xC6, 0x02,  # 0038: add G, 0x02
         0x9F, 0x00,  # 003A: movr H,A
-        0x98, 0xE1,  # 003C: movr (GH),H    mov (g),h for tt06
-        0xF9, 0x21,  # 003E: movi B, 0x21
-        0xC6, 0x01,  # 0040: add G, 0x01
-        0x98, 0x21,  # 0042: movr (GH),B    mov (g),h for tt06
-        0x30, 0x22,  # 0044: jmp 0044
+        0x98, 0xE1,  # 003C: movr (GH),H
+        0xFC, 0x40,  # 003E: movi E, 0x40
+        0xFD, 0x01,  # 0040: movi F, 0x01
+        0x99, 0x12,  # 0042: movr B,(EF)
+        0xC1, 0x77,  # 0044: add B, 0x77
+        0xC6, 0x01,  # 0046: add G, 0x01
+        0x98, 0x21,  # 0048: movr (GH),B
+        0x30, 0x25,  # 004A: jmp 004A
        ]
 RAM = bytearray(0x40)
 
@@ -50,10 +53,10 @@ def sim_memory(dut):
     # ROM + RAM reads
     we = dut.uo_out.value>>7
     addr = ((dut.uo_out.value<<8) | dut.uio_out.value) & 0x7fff
-    if addr < len(ROM):
-        dut.ui_in.value = ROM[addr]
-    elif addr >= 0x4000:
+    if addr & 0x4000 == 0:
         dut.ui_in.value = RAM[(addr>>8) & 0x3f]
+    elif (addr & 0x3fff) < len(ROM):
+        dut.ui_in.value = ROM[addr & 0x3fff]
     else:
         dut.ui_in.value = 0x66 # unknown
 
@@ -126,6 +129,7 @@ async def test_dj8(dut):
         await Timer(10,"us")
 
     dut.ui_in.value = 0       # DIP = 00000000
+
     for cycle in range(300):
         dut.clk.value = 1
         await Timer(10,"us")
@@ -133,6 +137,7 @@ async def test_dj8(dut):
         await Timer(10,"us")
 
     dut.ui_in.value = 1       # DIP = 00000001
+
     for cycle in range(300):
         dut.clk.value = 1
         await Timer(10,"us")
