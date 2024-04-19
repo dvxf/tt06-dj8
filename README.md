@@ -4,7 +4,9 @@
 
 A 8-bit CPU for Tiny Tapeout TT06
 
-[Documentation](docs/info.md)
+[Read the documentation for project](docs/info.md)
+
+![layout](docs/layout.png)
 
 ## What is Tiny Tapeout?
 

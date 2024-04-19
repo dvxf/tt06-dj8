@@ -68,6 +68,23 @@ def sim_memory(dut):
 
     prev_we = we
 
+prev_we = 1
+write_address = -1
+synth_data = []
+def debug_memory_synth(dut):
+    global prev_we, write_address
+
+    we = dut.uo_out.value>>7
+
+    # writes
+    if we == 0 and prev_we == 1: 
+        write_address = dut.uo_out.value & 0x3f 
+    if we == 1 and prev_we == 0: 
+        synth_data.append(int(dut.uio_out.value))
+
+    prev_we = we
+
+
 @cocotb.test()
 async def test_dj8(dut):
     dut._log.info("start")
@@ -109,10 +126,10 @@ async def test_dj8(dut):
     dut._log.info("magic: %02X %02X %02X %02X" % (RAM[0],RAM[1],RAM[2],RAM[3]))
     assert RAM[0:4] == "DJ8!".encode() # Verify magic value in RAM
 
-    # Phase 2: Test with internal ROM
+    # Phase 2: Test with internal ROM - LED indicator
     # tt06 demo board DIP switches = 0x40 to generate opcode 0x4040 = jmp gh and jump to ROM
     # As all registers are set to 0x80 at reset, it will jump to 0x8080 (value of GH)
-    # 16-bytes test ROM is mirrored from 0x8000 to 0xFFFF
+    # 256 bytes test ROM is mirrored from 0x8000 to 0xFFFF
 
     # reset
     dut._log.info("reset")
@@ -143,3 +160,26 @@ async def test_dj8(dut):
         await Timer(10,"us")
         dut.clk.value = 0
         await Timer(10,"us")
+
+    # Phase 3: Test with internal ROM - Bytebeat Synthetizer
+
+    # reset
+    dut._log.info("reset")
+    dut.rst_n.value = 0
+    await Timer(100,"us")
+    dut.ui_in.value = 0x60     # DIP = 01100000
+    dut.rst_n.value = 1
+    await Timer(100,"us")
+
+    for cycle in range(8000):  
+        dut.clk.value = 1
+        await Timer(35,"ns")   # ~14MHz
+        debug_memory_synth(dut)
+        dut.clk.value = 0
+        await Timer(35,"ns")
+        debug_memory_synth(dut)
+
+    dut._log.info("%d bytebeat samples generated" % len(synth_data))
+    dut._log.info(str(synth_data))
+
+    assert synth_data == [0,0,1,1,2]
